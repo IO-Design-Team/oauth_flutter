@@ -1,7 +1,5 @@
-library oauth_flutter;
+export 'src/oauth_flutter_base.dart';
 
-/// A Calculator.
-class Calculator {
-  /// Returns [value] plus 1.
-  int addOne(int value) => value + 1;
-}
+export 'src/model/oauth_authorization.dart';
+export 'src/model/oauth2_client_credentials.dart';
+export 'src/model/secure_oauth2_token.dart';
