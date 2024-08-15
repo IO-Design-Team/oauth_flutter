@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:fresh_dio/fresh_dio.dart';
 import 'package:oauth_flutter/oauth_flutter.dart';
+import 'package:oauth_flutter/src/model/oauth2_verification.dart';
 import 'package:oauth_flutter/src/model/secure_token_storage.dart';
 import 'package:pkce/pkce.dart';
 import 'package:uuid/uuid.dart';
@@ -71,6 +72,8 @@ class OAuth2Client {
   /// domain (e.g. local testing).
   final String? redirectOriginOverride;
 
+  final OAuth2Verification verification;
+
   /// The token refresher
   late final Fresh fresh;
 
@@ -88,6 +91,7 @@ class OAuth2Client {
     this.tokenDecoder = SecureOAuth2Token.fromJson,
     ReAuthenticationCallback? onReAuthenticate,
     this.redirectOriginOverride,
+    this.verification = const OAuth2Verification(),
   }) : oauthDio = oauthDio ?? Dio() {
     fresh = Fresh.oAuth2(
       tokenStorage: SecureTokenStorage(key: '$_keyPrefix$key'),
@@ -193,10 +197,10 @@ class OAuth2Client {
       // Store the raw nonce for easier OIDC compatibility
       'rawNonce': authorization.rawNonce,
     });
-    if (token.state != authorization.state) {
+    if (verification.tokenState && token.state != authorization.state) {
       throw Exception('State mismatch');
     }
-    if (token.rawNonce.sha256 != token.nonce) {
+    if (verification.tokenNonce && token.rawNonce.sha256 != token.nonce) {
       throw Exception('Nonce mismatch');
     }
 
@@ -218,7 +222,7 @@ class OAuth2Client {
     );
 
     final newToken = tokenDecoder(response.data);
-    if (newToken.nonce != token.nonce) {
+    if (verification.tokenNonce && newToken.nonce != token.nonce) {
       throw Exception('Nonce mismatch');
     }
 
