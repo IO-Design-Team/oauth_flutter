@@ -2,10 +2,10 @@ import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fresh_dio/fresh_dio.dart';
-import 'package:oauth_flutter/src/model/secure_oauth2_token.dart';
+import 'package:oauth_flutter/oauth_flutter.dart';
 
 /// A [TokenStorage] implementation backed by [FlutterSecureStorage]
-class SecureTokenStorage extends TokenStorage<SecureOAuth2Token> {
+class SecureTokenStorage<T extends SecureOAuth2Token> extends TokenStorage<T> {
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
     iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
@@ -14,20 +14,23 @@ class SecureTokenStorage extends TokenStorage<SecureOAuth2Token> {
   /// The key for storing the token
   final String key;
 
+  /// The token decoder
+  final OAuth2TokenDecoder<T> decoder;
+
   /// Constructor
-  SecureTokenStorage({required this.key});
+  SecureTokenStorage({required this.key, required this.decoder});
 
   @override
   Future<void> delete() => _storage.delete(key: key);
 
   @override
-  Future<SecureOAuth2Token?> read() async {
+  Future<T?> read() async {
     final json = await _storage.read(key: key);
     if (json == null) return null;
-    return SecureOAuth2Token.fromJson(jsonDecode(json));
+    return decoder(jsonDecode(json));
   }
 
   @override
-  Future<void> write(SecureOAuth2Token token) =>
+  Future<void> write(T token) =>
       _storage.write(key: key, value: jsonEncode(token));
 }

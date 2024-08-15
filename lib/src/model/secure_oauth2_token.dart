@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:fresh_dio/fresh_dio.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
@@ -44,7 +45,7 @@ class SecureOAuth2Token implements OAuth2Token {
   final String? state;
 
   /// The unencoded nonce
-  /// 
+  ///
   /// This is used by services such as Firebase for implicit OIDC
   final String rawNonce;
 
@@ -71,6 +72,12 @@ class SecureOAuth2Token implements OAuth2Token {
     }
 
     final jwt = JwtDecoder.decode(idToken);
+    extractJwtData(jwt);
+  }
+
+  /// Extract data from the decoded JWT token into class fields
+  @mustCallSuper
+  void extractJwtData(Map<String, dynamic> jwt) {
     nonce = jwt['nonce'];
   }
 

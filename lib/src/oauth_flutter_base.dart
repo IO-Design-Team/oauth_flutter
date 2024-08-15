@@ -4,7 +4,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:fresh_dio/fresh_dio.dart';
 import 'package:oauth_flutter/oauth_flutter.dart';
-import 'package:oauth_flutter/src/model/oauth2_verification.dart';
 import 'package:oauth_flutter/src/model/secure_token_storage.dart';
 import 'package:pkce/pkce.dart';
 import 'package:uuid/uuid.dart';
@@ -15,19 +14,20 @@ import 'package:crypto/crypto.dart' as crypto;
 /// Called when the refresh token has expired. An example use-case for not
 /// returning a token is to prompt the user with the option to re-auth as a
 /// Snackbar instead of forcing re-auth immediately.
-typedef ReAuthenticationCallback = Future<SecureOAuth2Token?> Function();
+typedef ReAuthenticationCallback<T extends SecureOAuth2Token> = Future<T?>
+    Function();
 
 /// Decoder for the OAuth2 token
 ///
 /// This can be overridden to decode custom tokens
-typedef OAuth2TokenDecoder = SecureOAuth2Token Function(
+typedef OAuth2TokenDecoder<T extends SecureOAuth2Token> = T Function(
   Map<String, dynamic> json,
 );
 
 /// A client that handles the complete OAuth2 flow
 ///
 /// Handles token generation, storage, and refreshing
-class OAuth2Client {
+class OAuth2Client<T extends SecureOAuth2Token> {
   static const _uuid = Uuid();
   static const _keyPrefix = '_oauth_flutter_token_';
 
@@ -64,7 +64,9 @@ class OAuth2Client {
   final OAuth2ClientCredentials? credentials;
 
   /// A function that decodes the token
-  final OAuth2TokenDecoder tokenDecoder;
+  ///
+  /// If using a custom token type, you MUST pass a custom [tokenDecoder]
+  final OAuth2TokenDecoder<T> tokenDecoder;
 
   /// **Only has an effect on Web!**
   /// Can be used to override the origin of the redirect URL.
@@ -72,6 +74,9 @@ class OAuth2Client {
   /// domain (e.g. local testing).
   final String? redirectOriginOverride;
 
+  /// Verification configuration
+  ///
+  /// Not all services support all verification options
   final OAuth2Verification verification;
 
   /// The token refresher
@@ -88,26 +93,31 @@ class OAuth2Client {
     this.callbackUrlScheme = 'https',
     this.credentials,
     this.scope = const {},
-    this.tokenDecoder = SecureOAuth2Token.fromJson,
-    ReAuthenticationCallback? onReAuthenticate,
+    OAuth2TokenDecoder<T>? tokenDecoder,
+    ReAuthenticationCallback<T>? onReAuthenticate,
     this.redirectOriginOverride,
     this.verification = const OAuth2Verification(),
-  }) : oauthDio = oauthDio ?? Dio() {
+  })  : tokenDecoder =
+            tokenDecoder ?? SecureOAuth2Token.fromJson as OAuth2TokenDecoder<T>,
+        oauthDio = oauthDio ?? Dio() {
     fresh = Fresh.oAuth2(
-      tokenStorage: SecureTokenStorage(key: '$_keyPrefix$key'),
+      tokenStorage: SecureTokenStorage(
+        key: '$_keyPrefix$key',
+        decoder: this.tokenDecoder,
+      ),
       refreshToken: (token, dio) => _refreshToken(
-        oldToken: token as SecureOAuth2Token?,
+        oldToken: token as T?,
         onReAuthenticate: onReAuthenticate ?? authenticate,
       ),
     );
     dio.interceptors.add(fresh);
   }
 
-  Future<SecureOAuth2Token> _refreshToken({
-    required SecureOAuth2Token? oldToken,
-    required ReAuthenticationCallback onReAuthenticate,
+  Future<T> _refreshToken({
+    required T? oldToken,
+    required ReAuthenticationCallback<T> onReAuthenticate,
   }) async {
-    Future<SecureOAuth2Token> reauthenticate() async {
+    Future<T> reauthenticate() async {
       final token = await onReAuthenticate();
       if (token == null) throw Exception('Re-authenticate returned no token');
       return token;
@@ -176,7 +186,7 @@ class OAuth2Client {
   }
 
   /// Perform the OAuth2 token exchange
-  Future<SecureOAuth2Token> token({
+  Future<T> token({
     required OAuthAuthorization authorization,
   }) async {
     final credentials = this.credentials;
@@ -208,8 +218,8 @@ class OAuth2Client {
   }
 
   /// Refresh the OAuth2 token
-  Future<SecureOAuth2Token> refresh({
-    required SecureOAuth2Token token,
+  Future<T> refresh({
+    required T token,
   }) async {
     final response = await oauthDio.post(
       '/token',
@@ -230,7 +240,7 @@ class OAuth2Client {
   }
 
   /// Perform the entire OAuth2 flow
-  Future<SecureOAuth2Token> authenticate() async {
+  Future<T> authenticate() async {
     final authorization = await authorize();
     final token = await this.token(authorization: authorization);
     await fresh.setToken(token);
