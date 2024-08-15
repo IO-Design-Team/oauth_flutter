@@ -72,7 +72,7 @@ class OAuth2Client {
     required this.oauthUri,
     required this.redirectUri,
     this.callbackUrlScheme = 'https',
-    required this.credentials,
+    this.credentials,
     this.scope = const {},
     this.tokenDecoder = SecureOAuth2Token.fromJson,
     BaseOptions? dioOptions,

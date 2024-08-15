@@ -1,5 +1,5 @@
 name: oauth_flutter
-description: "A drop-in OAuth2 solution for Flutter apps. Handles auth, token storage, and token refresh."
+description: "A secure OAuth2 solution for Flutter apps. Handles auth, token storage, and token refresh."
 version: 0.0.1
 homepage:
 

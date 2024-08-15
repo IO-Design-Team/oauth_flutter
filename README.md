@@ -1,11 +1,15 @@
-A drop-in OAuth2 solution for Flutter apps. Handles auth, token storage, and token refresh.
+A secure OAuth2 solution for Flutter apps. Handles auth, token storage, and token refresh.
 
 ## Features
 
 - Handles `dio` client setup
 - Securely stores tokens
 - Automatically refreshes tokens when expired
-- Optional handler for token refresh failures. Defaults to re-authenticating the user.
+- Refresh token expiration handler
+- Nonce, PKCE, and state verification
+- OIDC support
+  - Access to the ID token and raw nonce
+  - Works with Firebase OIDC implicit flow
 
 ## Getting started
 
@@ -93,15 +97,27 @@ An endpoint must be created that captures the callback URL and sends it to the a
 
 ## Usage
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
+<!-- embedme readme/usage.dart -->
 
 ```dart
-const like = 'sample';
+import 'package:flutter/foundation.dart';
+import 'package:oauth_flutter/oauth_flutter.dart';
+
+void main() async {
+  final client = OAuth2Client(
+    key: 'fitbit',
+    oauthUri: Uri.parse('https://www.fitbit.com/oauth2'),
+    redirectUri: Uri.parse('https://your-app.com/oauth2/callback'),
+    // Do not pass client credentials if they are injected by the server
+    credentials: OAuth2ClientCredentials(
+      id: 'your-client-id',
+      secret: 'your-client-secret',
+    ),
+    scope: {'openid', 'profile'},
+  );
+
+  final token = await client.authenticate();
+  debugPrint(token.idToken); // Fitbit doesn't actually support OIDC
+}
+
 ```
-
-## Additional information
-
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
