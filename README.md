@@ -108,7 +108,8 @@ void main() async {
   final client = OAuth2Client(
     key: 'fitbit',
     dio: Dio(BaseOptions(baseUrl: 'https://api.fitbit.com/1/user')),
-    oauthDio: Dio(BaseOptions(baseUrl: 'https://www.fitbit.com/oauth2')),
+    authorizationUri: Uri.parse('https://www.fitbit.com/oauth2/authorize'),
+    tokenUri: Uri.parse('https://api.fitbit.com/oauth2/token'),
     redirectUri: Uri.parse('https://your-app.com/oauth2/callback'),
     // Do not pass client credentials if they are injected by the server
     credentials: OAuth2ClientCredentials(

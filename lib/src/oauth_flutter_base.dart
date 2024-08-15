@@ -36,12 +36,13 @@ class OAuth2Client {
   final Dio dio;
 
   /// The client to use for OAuth operations
-  ///
-  /// Must include the base path for OAuth operations
   final Dio oauthDio;
 
-  /// The token refresher
-  late final Fresh fresh;
+  /// The OAuth2 authorization endpoint
+  final Uri authorizationUri;
+
+  /// The OAuth2 token endpoint
+  final Uri tokenUri;
 
   /// The redirect URI
   final Uri redirectUri;
@@ -70,11 +71,16 @@ class OAuth2Client {
   /// domain (e.g. local testing).
   final String? redirectOriginOverride;
 
+  /// The token refresher
+  late final Fresh fresh;
+
   /// Constructor
   OAuth2Client({
     required String key,
     required this.dio,
-    required this.oauthDio,
+    Dio? oauthDio,
+    required this.authorizationUri,
+    required this.tokenUri,
     required this.redirectUri,
     this.callbackUrlScheme = 'https',
     this.credentials,
@@ -82,7 +88,7 @@ class OAuth2Client {
     this.tokenDecoder = SecureOAuth2Token.fromJson,
     ReAuthenticationCallback? onReAuthenticate,
     this.redirectOriginOverride,
-  }) {
+  }) : oauthDio = oauthDio ?? Dio() {
     fresh = Fresh.oAuth2(
       tokenStorage: SecureTokenStorage(key: '$_keyPrefix$key'),
       refreshToken: (token, dio) => _refreshToken(
@@ -132,9 +138,8 @@ class OAuth2Client {
     final pkce = PkcePair.generate();
 
     final credentials = this.credentials;
-    final oauthUri = Uri.parse(oauthDio.options.baseUrl);
-    final uri = oauthUri.replace(
-      path: '${oauthUri.path}/authorize',
+    final uri = authorizationUri.replace(
+      path: authorizationUri.path,
       queryParameters: {
         if (credentials != null) 'client_id': credentials.id,
         'response_type': 'code',
@@ -171,8 +176,8 @@ class OAuth2Client {
     required OAuthAuthorization authorization,
   }) async {
     final credentials = this.credentials;
-    final response = await oauthDio.post(
-      '/token',
+    final response = await oauthDio.postUri(
+      tokenUri,
       options: Options(headers: _tokenHeaders),
       data: {
         if (credentials != null) 'client_id': credentials.id,
