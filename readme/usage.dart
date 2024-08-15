@@ -10,7 +10,7 @@ void main() async {
     tokenUri: Uri.parse('https://api.fitbit.com/oauth2/token'),
     redirectUri: Uri.parse('https://your-app.com/oauth2/callback'),
     // Do not pass client credentials if they are injected by the server
-    credentials: OAuth2ClientCredentials(
+    credentials: const OAuth2ClientCredentials(
       id: 'your-client-id',
       secret: 'your-client-secret',
     ),
