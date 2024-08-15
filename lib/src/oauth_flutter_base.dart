@@ -31,13 +31,17 @@ class OAuth2Client {
   static const _keyPrefix = '_oauth_flutter_token_';
 
   /// Access to the OAuth dio client
+  ///
+  /// Must include the base path for API operations. This is the OAuth audience.
   final Dio dio;
+
+  /// The client to use for OAuth operations
+  ///
+  /// Must include the base path for OAuth operations
+  final Dio oauthDio;
 
   /// The token refresher
   late final Fresh fresh;
-
-  /// The base URI for OAuth2 operations
-  final Uri oauthUri;
 
   /// The redirect URI
   final Uri redirectUri;
@@ -69,16 +73,16 @@ class OAuth2Client {
   /// Constructor
   OAuth2Client({
     required String key,
-    required this.oauthUri,
+    required this.dio,
+    required this.oauthDio,
     required this.redirectUri,
     this.callbackUrlScheme = 'https',
     this.credentials,
     this.scope = const {},
     this.tokenDecoder = SecureOAuth2Token.fromJson,
-    BaseOptions? dioOptions,
     ReAuthenticationCallback? onReAuthenticate,
     this.redirectOriginOverride,
-  }) : dio = Dio(dioOptions) {
+  }) {
     fresh = Fresh.oAuth2(
       tokenStorage: SecureTokenStorage(key: '$_keyPrefix$key'),
       refreshToken: (token, dio) => _refreshToken(
@@ -128,6 +132,7 @@ class OAuth2Client {
     final pkce = PkcePair.generate();
 
     final credentials = this.credentials;
+    final oauthUri = Uri.parse(oauthDio.options.baseUrl);
     final uri = oauthUri.replace(
       path: '${oauthUri.path}/authorize',
       queryParameters: {
@@ -146,7 +151,11 @@ class OAuth2Client {
     final result = await FlutterWebAuth2.authenticate(
       url: uri.toString(),
       callbackUrlScheme: callbackUrlScheme,
-      options: FlutterWebAuth2Options(debugOrigin: redirectOriginOverride),
+      options: FlutterWebAuth2Options(
+        debugOrigin: redirectOriginOverride,
+        httpsHost: redirectUri.host,
+        httpsPath: redirectUri.path,
+      ),
     );
 
     return OAuthAuthorization.fromUrl(
@@ -162,9 +171,8 @@ class OAuth2Client {
     required OAuthAuthorization authorization,
   }) async {
     final credentials = this.credentials;
-    // Use a fresh Dio instance to bypass [Fresh]
-    final response = await Dio().postUri(
-      oauthUri.replace(path: '${oauthUri.path}/token'),
+    final response = await oauthDio.post(
+      '/token',
       options: Options(headers: _tokenHeaders),
       data: {
         if (credentials != null) 'client_id': credentials.id,
@@ -194,9 +202,8 @@ class OAuth2Client {
   Future<SecureOAuth2Token> refresh({
     required SecureOAuth2Token token,
   }) async {
-    // Use a fresh Dio instance to bypass [Fresh]
-    final response = await Dio().postUri(
-      oauthUri.replace(path: '${oauthUri.path}/token'),
+    final response = await oauthDio.post(
+      '/token',
       options: Options(headers: _tokenHeaders),
       data: {
         'grant_type': 'refresh_token',
