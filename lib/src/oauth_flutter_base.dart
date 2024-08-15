@@ -36,17 +36,14 @@ class OAuth2Client {
   /// The token refresher
   late final Fresh fresh;
 
-  /// Authorization URI
-  final Uri authorizationUri;
-
-  /// Token URI
-  final Uri tokenUri;
+  /// The base URI for OAuth2 operations
+  final Uri oauthUri;
 
   /// The redirect URI
   final Uri redirectUri;
 
   /// The callback url scheme for native platforms
-  /// 
+  ///
   /// This should kept as `https` for maximum security. This requires the following setup:
   /// - [Universal Links](https://developer.apple.com/ios/universal-links/)
   /// - [App Links](https://developer.android.com/training/app-links/#android-app-links)
@@ -72,8 +69,7 @@ class OAuth2Client {
   /// Constructor
   OAuth2Client({
     required String key,
-    required this.authorizationUri,
-    required this.tokenUri,
+    required this.oauthUri,
     required this.redirectUri,
     this.callbackUrlScheme = 'https',
     required this.credentials,
@@ -97,28 +93,20 @@ class OAuth2Client {
     required SecureOAuth2Token? oldToken,
     required ReAuthenticationCallback onReAuthenticate,
   }) async {
-    if (oldToken == null) {
+    Future<SecureOAuth2Token> reauthenticate() async {
       final token = await onReAuthenticate();
-      if (token == null) {
-        throw Exception('Re-authenticate returned no token');
-      }
+      if (token == null) throw Exception('Re-authenticate returned no token');
       return token;
     }
+
+    if (oldToken == null) return reauthenticate();
 
     try {
       return refresh(token: oldToken);
     } on DioException catch (e) {
       final statusCode = e.response?.statusCode;
-      if (statusCode == null) {
-        rethrow;
-      }
-      if (statusCode >= 400 && statusCode < 500) {
-        final token = await onReAuthenticate();
-        if (token == null) {
-          throw Exception('Re-authenticate returned no token');
-        }
-        return token;
-      }
+      if (statusCode == null) rethrow;
+      if (statusCode >= 400 && statusCode < 500) return reauthenticate();
       rethrow;
     }
   }
@@ -140,10 +128,9 @@ class OAuth2Client {
     final pkce = PkcePair.generate();
 
     final credentials = this.credentials;
-    final uri = Uri.https(
-      authorizationUri.authority,
-      authorizationUri.path,
-      {
+    final uri = oauthUri.replace(
+      path: '${oauthUri.path}/authorize',
+      queryParameters: {
         if (credentials != null) 'client_id': credentials.id,
         'response_type': 'code',
         'redirect_uri': redirectUri.toString(),
@@ -177,7 +164,7 @@ class OAuth2Client {
     final credentials = this.credentials;
     // Use a fresh Dio instance to bypass [Fresh]
     final response = await Dio().postUri(
-      tokenUri,
+      oauthUri.replace(path: '${oauthUri.path}/token'),
       options: Options(headers: _tokenHeaders),
       data: {
         if (credentials != null) 'client_id': credentials.id,
@@ -209,7 +196,7 @@ class OAuth2Client {
   }) async {
     // Use a fresh Dio instance to bypass [Fresh]
     final response = await Dio().postUri(
-      tokenUri,
+      oauthUri.replace(path: '${oauthUri.path}/token'),
       options: Options(headers: _tokenHeaders),
       data: {
         'grant_type': 'refresh_token',

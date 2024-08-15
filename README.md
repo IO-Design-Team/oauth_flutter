@@ -16,11 +16,11 @@ The most relevant setup information for iOS/Android/web apps is copied below. Se
 
 ### iOS
 
-Recommended:
-To authenticate using [Universal Links](https://developer.apple.com/library/archive/documentation/General/Conceptual/AppSearch/UniversalLinks.html)
-on iOS, use `https` as the provided `callbackUrlScheme`.
+Set up [Universal Links](https://developer.apple.com/ios/universal-links/)
 
 ### Android
+
+Set up [App Links](https://developer.android.com/training/app-links)
 
 `android/app/build.gradle`
 
