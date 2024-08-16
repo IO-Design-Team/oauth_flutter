@@ -1,4 +1,4 @@
-A secure OAuth2 solution for Flutter apps. Handles auth, token storage, and token refresh.
+A complete OAuth2 solution for Flutter apps. Handles auth, token storage, and token refresh.
 
 ## Features
 
@@ -65,7 +65,7 @@ Ensure that the web server serves the Flutter app with a `Strict-Transport-Secur
 Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
 ```
 
-An endpoint must be created that captures the callback URL and sends it to the application using the JavaScript `postMessage` method. In the `web` folder of the project, create an HTML file named, e.g. `auth.html` with content:
+An endpoint must be created that captures the callback URL and sends it to the application using the JavaScript `postMessage` method. In the `web` folder of the project, create an HTML file named, e.g. `oauth2/callback` with content:
 
 ```html
 <!DOCTYPE html>
