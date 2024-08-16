@@ -237,7 +237,9 @@ class OAuth2Client<T extends SecureOAuth2Token> {
 
   /// Revoke the OAuth2 token
   Future<void> revoke() async {
-    final token = await fresh.token as T;
+    final token = await fresh.token as T?;
+    if (token == null) return;
+
     final credentials = this.credentials;
     final response = await oauthDio.postUri(
       endpoints.revoke,
