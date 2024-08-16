@@ -39,11 +39,8 @@ class OAuth2Client<T extends SecureOAuth2Token> {
   /// The client to use for OAuth operations
   final Dio oauthDio;
 
-  /// The OAuth2 authorization endpoint
-  final Uri authorizationUri;
-
-  /// The OAuth2 token endpoint
-  final Uri tokenUri;
+  /// The OAuth2 endpoints
+  final OAuth2Endpoints endpoints;
 
   /// The redirect URI
   final Uri redirectUri;
@@ -87,8 +84,7 @@ class OAuth2Client<T extends SecureOAuth2Token> {
     required String key,
     required this.dio,
     Dio? oauthDio,
-    required this.authorizationUri,
-    required this.tokenUri,
+    required this.endpoints,
     required this.redirectUri,
     this.callbackUrlScheme = 'https',
     this.credentials,
@@ -152,8 +148,8 @@ class OAuth2Client<T extends SecureOAuth2Token> {
     final pkce = PkcePair.generate();
 
     final credentials = this.credentials;
-    final uri = authorizationUri.replace(
-      path: authorizationUri.path,
+    final uri = endpoints.authorize.replace(
+      path: endpoints.authorize.path,
       queryParameters: {
         if (credentials != null) 'client_id': credentials.id,
         'response_type': 'code',
@@ -191,7 +187,7 @@ class OAuth2Client<T extends SecureOAuth2Token> {
   }) async {
     final credentials = this.credentials;
     final response = await oauthDio.postUri(
-      tokenUri,
+      endpoints.token,
       options: Options(headers: _tokenHeaders),
       data: {
         if (credentials != null) 'client_id': credentials.id,
@@ -221,8 +217,8 @@ class OAuth2Client<T extends SecureOAuth2Token> {
   Future<T> refresh({
     required T token,
   }) async {
-    final response = await oauthDio.post(
-      '/token',
+    final response = await oauthDio.postUri(
+      endpoints.token,
       options: Options(headers: _tokenHeaders),
       data: {
         'grant_type': 'refresh_token',
@@ -237,6 +233,26 @@ class OAuth2Client<T extends SecureOAuth2Token> {
     }
 
     return newToken;
+  }
+
+  /// Revoke the OAuth2 token
+  Future<void> revoke() async {
+    final token = await fresh.token as T;
+    final credentials = this.credentials;
+    final response = await oauthDio.postUri(
+      endpoints.revoke,
+      options: Options(headers: _tokenHeaders),
+      data: {
+        if (credentials != null) 'client_id': credentials.id,
+        'token': token.accessToken,
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to revoke token');
+    }
+
+    await fresh.clearToken();
   }
 
   /// Perform the entire OAuth2 flow
