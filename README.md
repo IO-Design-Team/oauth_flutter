@@ -97,7 +97,7 @@ An endpoint must be created that captures the callback URL and sends it to the a
 
 ## Usage
 
-<!-- embedme readme/usage.dart -->
+<!-- embedme example/example.dart -->
 
 ```dart
 import 'package:dio/dio.dart';
