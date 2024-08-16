@@ -5,16 +5,32 @@ import 'package:oauth_flutter/oauth_flutter.dart';
 void main() async {
   final client = OAuth2Client(
     key: 'fitbit',
+    // The `baseUrl` is the OAuth `aud` parameter
     dio: Dio(BaseOptions(baseUrl: 'https://api.fitbit.com/1/user')),
-    authorizationUri: Uri.parse('https://www.fitbit.com/oauth2/authorize'),
-    tokenUri: Uri.parse('https://api.fitbit.com/oauth2/token'),
+    endpoints: OAuth2Endpoints(
+      authorize: 'https://fitbit.com/oauth2/authorize',
+      token: 'https://api.fitbit.com/oauth2/token',
+      revoke: 'https://api.fitbit.com/oauth2/revoke',
+    ),
+    // Use `OAuth2Endpoints.base` for services with a consistent base URL
+    // endpoints: OAuth2Endpoints.base('https://api.fitbit.com/oauth2'),
     redirectUri: Uri.parse('https://your-app.com/oauth2/callback'),
     // Do not pass client credentials if they are injected by the server
     credentials: const OAuth2ClientCredentials(
       id: 'your-client-id',
       secret: 'your-client-secret',
     ),
-    scope: {},
+    scope: {
+      'activity',
+      'heartrate',
+      'nutrition',
+      'oxygen_saturation',
+      'respiratory_rate',
+      'settings',
+      'sleep',
+      'temperature',
+      'weight',
+    },
   );
 
   final token = await client.authenticate();
