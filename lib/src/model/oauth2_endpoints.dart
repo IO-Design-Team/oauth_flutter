@@ -1,30 +1,45 @@
+import 'package:json_annotation/json_annotation.dart';
+
+part 'oauth2_endpoints.g.dart';
+
 /// Wrapper for all OAuth2 endpoints
+@JsonSerializable()
 class OAuth2Endpoints {
   /// URI for authorization
-  final Uri authorize;
+  @JsonKey(name: 'authorization_endpoint')
+  final Uri authorization;
 
   /// URI for token exchange
+  @JsonKey(name: 'token_endpoint')
   final Uri token;
 
   /// URI for token revocation
-  final Uri revoke;
+  @JsonKey(name: 'revocation_endpoint')
+  final Uri? revocation;
 
   /// Construct with explicit URLs
   OAuth2Endpoints({
-    required String authorize,
+    required String authorization,
     required String token,
-    required String revoke,
-  })  : authorize = Uri.parse(authorize),
+    String? revocation,
+  })  : authorization = Uri.parse(authorization),
         token = Uri.parse(token),
-        revoke = Uri.parse(revoke);
+        revocation = revocation != null ? Uri.parse(revocation) : null;
 
   /// Construct with a base URL
   ///
   /// Convenient for services that have a consistent base URL
   OAuth2Endpoints.base(String base)
       : this(
-          authorize: '$base/authorize',
+          authorization: '$base/authorize',
           token: '$base/token',
-          revoke: '$base/revoke',
+          revocation: '$base/revoke',
         );
+
+  /// From json
+  factory OAuth2Endpoints.fromJson(Map<String, dynamic> json) =>
+      _$OAuth2EndpointsFromJson(json);
+
+  /// To json
+  Map<String, dynamic> toJson() => _$OAuth2EndpointsToJson(this);
 }

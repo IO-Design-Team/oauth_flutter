@@ -8,6 +8,7 @@ A complete OAuth2 solution for Flutter apps. Handles auth, token storage, and to
 - Refresh token expiration handler
 - Nonce, PKCE, and state verification
 - OIDC support
+  - Endpoint discovery
   - Access to the ID token and raw nonce
   - Works with Firebase OIDC implicit flow
 
@@ -110,9 +111,9 @@ void main() async {
     // The `baseUrl` is the OAuth `aud` parameter
     dio: Dio(BaseOptions(baseUrl: 'https://api.fitbit.com/1/user')),
     endpoints: OAuth2Endpoints(
-      authorize: 'https://fitbit.com/oauth2/authorize',
+      authorization: 'https://fitbit.com/oauth2/authorize',
       token: 'https://api.fitbit.com/oauth2/token',
-      revoke: 'https://api.fitbit.com/oauth2/revoke',
+      revocation: 'https://api.fitbit.com/oauth2/revoke',
     ),
     // Use `OAuth2Endpoints.base` for services with a consistent base URL
     // endpoints: OAuth2Endpoints.base('https://api.fitbit.com/oauth2'),

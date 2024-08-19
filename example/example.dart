@@ -8,9 +8,9 @@ void main() async {
     // The `baseUrl` is the OAuth `aud` parameter
     dio: Dio(BaseOptions(baseUrl: 'https://api.fitbit.com/1/user')),
     endpoints: OAuth2Endpoints(
-      authorize: 'https://fitbit.com/oauth2/authorize',
+      authorization: 'https://fitbit.com/oauth2/authorize',
       token: 'https://api.fitbit.com/oauth2/token',
-      revoke: 'https://api.fitbit.com/oauth2/revoke',
+      revocation: 'https://api.fitbit.com/oauth2/revoke',
     ),
     // Use `OAuth2Endpoints.base` for services with a consistent base URL
     // endpoints: OAuth2Endpoints.base('https://api.fitbit.com/oauth2'),

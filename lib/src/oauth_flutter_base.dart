@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -31,6 +32,11 @@ class OAuth2Client<T extends SecureOAuth2Token> {
   static const _uuid = Uuid();
   static const _keyPrefix = '_oauth_flutter_token_';
 
+  /// Completer for the OAuth2 endpoints
+  ///
+  /// Either completed in the constructor or when discovery is performed
+  final _endpoints = Completer<OAuth2Endpoints>();
+
   /// Access to the OAuth dio client
   ///
   /// Must include the base path for API operations. This is the OAuth audience.
@@ -39,8 +45,8 @@ class OAuth2Client<T extends SecureOAuth2Token> {
   /// The client to use for OAuth operations
   final Dio oauthDio;
 
-  /// The OAuth2 endpoints
-  final OAuth2Endpoints endpoints;
+  /// The discovery URI
+  final Uri? discoveryUri;
 
   /// The redirect URI
   final Uri redirectUri;
@@ -79,12 +85,15 @@ class OAuth2Client<T extends SecureOAuth2Token> {
   /// The token refresher
   late final Fresh fresh;
 
-  /// Constructor
+  /// Create an OAuth2 client
+  ///
+  /// One of [endpoints] or [discoveryUri] must be provided
   OAuth2Client({
     required String key,
     required this.dio,
     Dio? oauthDio,
-    required this.endpoints,
+    OAuth2Endpoints? endpoints,
+    this.discoveryUri,
     required this.redirectUri,
     this.callbackUrlScheme = 'https',
     this.credentials,
@@ -93,9 +102,13 @@ class OAuth2Client<T extends SecureOAuth2Token> {
     ReAuthenticationCallback<T>? onReAuthenticate,
     this.redirectOriginOverride,
     this.verification = const OAuth2Verification(),
-  })  : tokenDecoder =
+  })  : assert((endpoints != null) ^ (discoveryUri != null)),
+        tokenDecoder =
             tokenDecoder ?? SecureOAuth2Token.fromJson as OAuth2TokenDecoder<T>,
         oauthDio = oauthDio ?? Dio() {
+    if (endpoints != null) {
+      _endpoints.complete(endpoints);
+    }
     fresh = Fresh.oAuth2(
       tokenStorage: SecureTokenStorage(
         key: '$_keyPrefix$key',
@@ -107,6 +120,14 @@ class OAuth2Client<T extends SecureOAuth2Token> {
       ),
     );
     dio.interceptors.add(fresh);
+  }
+
+  Future<OAuth2Endpoints> _discover() async {
+    if (_endpoints.isCompleted) return _endpoints.future;
+    final response = await oauthDio.getUri(discoveryUri!);
+    final endpoints = OAuth2Endpoints.fromJson(response.data);
+    _endpoints.complete(endpoints);
+    return endpoints;
   }
 
   Future<T> _refreshToken({
@@ -147,9 +168,10 @@ class OAuth2Client<T extends SecureOAuth2Token> {
     final state = _uuid.v4();
     final pkce = PkcePair.generate();
 
+    final endpoints = await _discover();
     final credentials = this.credentials;
-    final uri = endpoints.authorize.replace(
-      path: endpoints.authorize.path,
+    final uri = endpoints.authorization.replace(
+      path: endpoints.authorization.path,
       queryParameters: {
         if (credentials != null) 'client_id': credentials.id,
         'response_type': 'code',
@@ -185,6 +207,7 @@ class OAuth2Client<T extends SecureOAuth2Token> {
   Future<T> token({
     required OAuthAuthorization authorization,
   }) async {
+    final endpoints = await _discover();
     final credentials = this.credentials;
     final response = await oauthDio.postUri(
       endpoints.token,
@@ -217,6 +240,7 @@ class OAuth2Client<T extends SecureOAuth2Token> {
   Future<T> refresh({
     required T token,
   }) async {
+    final endpoints = await _discover();
     final response = await oauthDio.postUri(
       endpoints.token,
       options: Options(headers: _tokenHeaders),
@@ -240,9 +264,14 @@ class OAuth2Client<T extends SecureOAuth2Token> {
     final token = await fresh.token as T?;
     if (token == null) return;
 
+    final endpoints = await _discover();
+    final revocation = endpoints.revocation;
+    if (revocation == null) {
+      throw Exception('Revocation endpoint not available');
+    }
     final credentials = this.credentials;
     final response = await oauthDio.postUri(
-      endpoints.revoke,
+      revocation,
       options: Options(headers: _tokenHeaders),
       data: {
         if (credentials != null) 'client_id': credentials.id,
