@@ -39,4 +39,7 @@ void main() async {
   final response =
       await client.dio.get('/GGNJL9/activities/heart/date/today/1d.json');
   debugPrint(response.data);
+
+  final isAuthenticated = await client.isAuthenticated();
+  debugPrint(isAuthenticated.toString());
 }
