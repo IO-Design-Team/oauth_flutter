@@ -300,6 +300,12 @@ class OAuth2Client<T extends SecureOAuth2Token> {
     await fresh.setToken(token);
     return token;
   }
+
+  /// Check if the user is authenticated
+  Future<bool> isAuthenticated() async {
+    final token = await fresh.token;
+    return token != null;
+  }
 }
 
 extension on String {
