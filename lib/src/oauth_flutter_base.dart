@@ -163,7 +163,12 @@ class OAuth2Client<T extends SecureOAuth2Token> {
   }
 
   /// Perform the OAuth2 authorization flow
-  Future<OAuthAuthorization> authorize() async {
+  ///
+  /// [interceptCallback] can be used to intercept the OAuth2 callback by some
+  /// other means for testing (like reading from the clipboard)
+  Future<OAuthAuthorization> authorize({
+    Future<String>? interceptCallback,
+  }) async {
     final rawNonce = _uuid.v4();
     final state = _uuid.v4();
     final pkce = PkcePair.generate();
@@ -185,7 +190,7 @@ class OAuth2Client<T extends SecureOAuth2Token> {
       },
     );
 
-    final result = await FlutterWebAuth2.authenticate(
+    final callbackFuture = FlutterWebAuth2.authenticate(
       url: uri.toString(),
       callbackUrlScheme: callbackUrlScheme,
       options: FlutterWebAuth2Options(
@@ -194,6 +199,8 @@ class OAuth2Client<T extends SecureOAuth2Token> {
         httpsPath: redirectUri.path,
       ),
     );
+
+    final result = await (interceptCallback ?? callbackFuture);
 
     return OAuthAuthorization.fromUrl(
       url: result,
@@ -287,8 +294,8 @@ class OAuth2Client<T extends SecureOAuth2Token> {
   }
 
   /// Perform the entire OAuth2 flow
-  Future<T> authenticate() async {
-    final authorization = await authorize();
+  Future<T> authenticate({Future<String>? interceptCallback}) async {
+    final authorization = await authorize(interceptCallback: interceptCallback);
     final token = await this.token(authorization: authorization);
     await fresh.setToken(token);
     return token;
