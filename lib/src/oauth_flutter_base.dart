@@ -122,6 +122,12 @@ class OAuth2Client<T extends SecureOAuth2Token> {
     dio.interceptors.add(fresh);
   }
 
+  T _decodeToken({
+    required Map<String, dynamic> data,
+    required String rawNonce,
+  }) =>
+      tokenDecoder({...data, 'rawNonce': rawNonce});
+
   Future<OAuth2Endpoints> _discover() async {
     if (_endpoints.isCompleted) return _endpoints.future;
     final response = await oauthDio.getUri(discoveryUri!);
@@ -228,11 +234,11 @@ class OAuth2Client<T extends SecureOAuth2Token> {
       },
     );
 
-    final token = tokenDecoder({
-      ...response.data,
+    final token = _decodeToken(
+      data: response.data,
       // Store the raw nonce for easier OIDC compatibility
-      'rawNonce': authorization.rawNonce,
-    });
+      rawNonce: authorization.rawNonce,
+    );
     if (verification.tokenState && token.state != authorization.state) {
       throw Exception('State mismatch');
     }
@@ -258,7 +264,8 @@ class OAuth2Client<T extends SecureOAuth2Token> {
       },
     );
 
-    final newToken = tokenDecoder(response.data);
+    final newToken =
+        _decodeToken(data: response.data, rawNonce: token.rawNonce);
     if (verification.tokenNonce && newToken.nonce != token.nonce) {
       throw Exception('Nonce mismatch');
     }

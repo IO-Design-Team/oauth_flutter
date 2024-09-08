@@ -1,3 +1,7 @@
+## 0.0.5
+
+- Fixes token refresh serialization issue
+
 ## 0.0.4
 
 - Adds `interceptCallback` parameter to allow for custom interception of the callback URL
