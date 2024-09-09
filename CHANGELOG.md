@@ -1,3 +1,7 @@
+## 0.0.6
+
+- Specifies a generic type on the `Fresh` field
+
 ## 0.0.5
 
 - Fixes token refresh serialization issue

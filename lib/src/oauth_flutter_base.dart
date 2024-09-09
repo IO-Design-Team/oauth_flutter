@@ -83,7 +83,7 @@ class OAuth2Client<T extends SecureOAuth2Token> {
   final OAuth2Verification verification;
 
   /// The token refresher
-  late final Fresh fresh;
+  late final Fresh<T> fresh;
 
   /// Create an OAuth2 client
   ///
@@ -109,13 +109,16 @@ class OAuth2Client<T extends SecureOAuth2Token> {
     if (endpoints != null) {
       _endpoints.complete(endpoints);
     }
-    fresh = Fresh.oAuth2(
+    fresh = Fresh(
+      tokenHeader: (token) => {
+        'authorization': '${token.tokenType} ${token.accessToken}',
+      },
       tokenStorage: SecureTokenStorage(
         key: '$_keyPrefix$key',
         decoder: this.tokenDecoder,
       ),
       refreshToken: (token, dio) => _refreshToken(
-        oldToken: token as T?,
+        oldToken: token,
         onReAuthenticate: onReAuthenticate ?? authenticate,
       ),
     );
@@ -275,7 +278,7 @@ class OAuth2Client<T extends SecureOAuth2Token> {
 
   /// Revoke the OAuth2 token
   Future<void> revoke() async {
-    final token = await fresh.token as T?;
+    final token = await fresh.token;
     if (token == null) return;
 
     final endpoints = await _discover();
