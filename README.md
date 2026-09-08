@@ -32,7 +32,7 @@ Set up [App Links](https://developer.android.com/training/app-links)
 ```kotlin
 android {
     defaultConfig {
-        minSdk = 23
+        minSdk = 24
     }
 }
 ```

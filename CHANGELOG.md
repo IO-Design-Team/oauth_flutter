@@ -1,3 +1,7 @@
+## 0.0.13
+
+- Upgrades `flutter_secure_storage` to `^11.0.0`
+
 ## 0.0.12
 
 - Upgrades `fresh_dio` to `0.6.0`
